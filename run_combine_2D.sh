@@ -112,15 +112,15 @@ if $asimov; then
   # run 1D fit for rDs with rDsStar float #
   #########################################
   
-  #combine -M MultiDimFit my_workspace_binned.root --algo grid --points 200 --saveInactivePOI 1 -P rDs     --floatOtherPOIs 1 -t -1 -v 1 -n _1D_scan_rDs_2nd_float_binned --setParameters rDs=1,rDsStar=1
-  #plot1DScan.py higgsCombine_1D_scan_rDs_2nd_float_binned.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_2nd_float_binned --main-label "Asimov"  
+  combine -M MultiDimFit my_workspace_binned.root --algo grid --points 200 --saveInactivePOI 1 -P rDs     --floatOtherPOIs 1 -t -1 -v 1 -n _1D_scan_rDs_2nd_float_binned --setParameters rDs=1,rDsStar=1
+  plot1DScan.py higgsCombine_1D_scan_rDs_2nd_float_binned.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_2nd_float_binned --main-label "Asimov"  
   
   ##############################################################
   # run 1D fit for rDs with rDsStar float + freeze Systematics #
   ##############################################################
   
-  #combine -M MultiDimFit my_workspace_binned.root --algo grid --points 200 --saveInactivePOI 1 -P rDs     --floatOtherPOIs 1 -t -1 -v 1 --setParameters rDs=1     --freezeParameters allConstrainedNuisances -n _1D_scan_rDs_2nd_float_freeze_sys_binned
-  #plot1DScan.py higgsCombine_1D_scan_rDs_2nd_float_binned.MultiDimFit.mH120.root --others "higgsCombine_1D_scan_rDs_2nd_float_freeze_sys_binned.MultiDimFit.mH120.root:Stat-Only:2"         --POI rDs -o 1D_scan_rDs_2nd_float_sys_binned  
+  combine -M MultiDimFit my_workspace_binned.root --algo grid --points 200 --saveInactivePOI 1 -P rDs     --floatOtherPOIs 1 -t -1 -v 1 --setParameters rDs=1     --freezeParameters allConstrainedNuisances -n _1D_scan_rDs_2nd_float_freeze_sys_binned
+  plot1DScan.py higgsCombine_1D_scan_rDs_2nd_float_binned.MultiDimFit.mH120.root --others "higgsCombine_1D_scan_rDs_2nd_float_freeze_sys_binned.MultiDimFit.mH120.root:Stat-Only:2"         --POI rDs -o 1D_scan_rDs_2nd_float_sys_binned  
   
   ##########################################
   # run toys fit                           # 
@@ -157,7 +157,7 @@ if $asimov; then
   
   combine -M MultiDimFit my_workspace_binned.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 0 --setParameters rDs=1,rDsStar=1 --freezeParameters allConstrainedNuisances -n _1D_scan_rDsStar_2nd_float_freeze_sys_binned
   plot1DScan.py higgsCombine_1D_scan_rDsStar_2nd_float_binned.MultiDimFit.mH120.root --others "higgsCombine_1D_scan_rDsStar_2nd_float_freeze_sys_binned.MultiDimFit.mH120.root:Stat-Only:2" --POI rDsStar -o 1D_scan_rDsStar_2nd_float_sys_binned  
- 
+ #
   ##########################################
   # run toys fit                           # 
   ##########################################
@@ -175,31 +175,45 @@ if $asimov; then
   #combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=0.252,rDs=0.3 --algo contour2d --points=40 --cl=0.68 -n _68
   #combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=0.252,rDs=0.3 --algo contour2d --points=40 --cl=0.95 -n _95
   #combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=0.252,rDs=0.3 --algo contour2d --points=40 --cl=0.99 -n _99
-  #combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=1.0,rDs=1.0 --algo contour2d --points=40 --cl=0.68 -n _68
-  #combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=1.0,rDs=1.0 --algo contour2d --points=40 --cl=0.95 -n _95
-  #combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=1.0,rDs=1.0 --algo contour2d --points=40 --cl=0.99 -n _99
+  combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=1.0,rDs=1.0 --algo contour2d --points=40 --cl=0.68 -n _68
+  combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=1.0,rDs=1.0 --algo contour2d --points=40 --cl=0.95 -n _95
+  combine -M MultiDimFit my_workspace_binned.root -t -1  --setParameters rDsStar=1.0,rDs=1.0 --algo contour2d --points=40 --cl=0.99 -n _99
 
-  #root -l -b -q 'contourPlot.cxx("contours","")'
+  root -l -b -q 'contourPlot.cxx("contours","")'
 
   #################
   # IMPACT PLOTS  #
   #################
  
-  #combineTool.py -M Impacts -d my_workspace_binned.root -m 125 --freezeParameters MH -n .impacts_binned --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doInitialFit          -t -1 --setParameters rDsStar=1,rDs=1 --robustFit 1 
-  #combineTool.py -M Impacts -d my_workspace_binned.root -m 125 --freezeParameters MH -n .impacts_binned --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doFits                -t -1 --setParameters rDsStar=1,rDs=1
-  #combineTool.py -M Impacts -d my_workspace_binned.root -m 125 --freezeParameters MH -n .impacts_binned --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar -o impacts_binned.json  -t -1 --setParameters rDsStar=1,rDs=1 
+  combineTool.py -M Impacts -d my_workspace_binned.root -m 125 --freezeParameters MH -n .impacts_binned --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doInitialFit          -t -1 --setParameters rDsStar=1,rDs=1 --robustFit 1 
+  combineTool.py -M Impacts -d my_workspace_binned.root -m 125 --freezeParameters MH -n .impacts_binned --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doFits                -t -1 --setParameters rDsStar=1,rDs=1
+  combineTool.py -M Impacts -d my_workspace_binned.root -m 125 --freezeParameters MH -n .impacts_binned --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar -o impacts_binned.json  -t -1 --setParameters rDsStar=1,rDs=1 
   
-  #plotImpacts.py -i impacts_binned.json -o impact_plot_rDs_binned     --POI rDs     #--blind
-  #plotImpacts.py -i impacts_binned.json -o impact_plot_rDsStar_binned --POI rDsStar #--blind
+  plotImpacts.py -i impacts_binned.json -o impact_plot_rDs_binned     --POI rDs     #--blind
+  plotImpacts.py -i impacts_binned.json -o impact_plot_rDsStar_binned --POI rDsStar #--blind
 
   #########################
   # GOODNESS OF FIT PLOTS #
   #########################
   
   #KS test between data and postfit expectation, calculate KS for all toys and throw a distribution. 
-  #combine -M GoodnessOfFit my_workspace_binned.root --algo=KS -t 5 -s 1234  --setParameters rDsStar=1,rDs=1 -n _gof_KS
-  #combineTool.py -M CollectGoodnessOfFit --input higgsCombine_gof_KS.GoodnessOfFit.mH120.1234.root -m 125.0 -o _gof_KS.json
-  #plotGof.py gof.json --statistic saturated --mass 125.0 -o gof_plot --title-right="my label"
+  echo "---- GOF toy production ----"
+  combine -M GoodnessOfFit my_workspace_binned.root --algo=KS -t 200 -s 1234  --setParameters rDsStar=1,rDs=1 -n _gof_KS
+  echo "---- GOF data ----"
+  combine -M GoodnessOfFit my_workspace_binned.root --algo=KS               --setParameters rDsStar=1,rDs=1 -n _gof_KS
+  echo "---- Perform KS test ----"
+  combineTool.py -M CollectGoodnessOfFit --input higgsCombine_gof_KS.GoodnessOfFit.mH120.root higgsCombine_gof_KS.GoodnessOfFit.mH120.1234.root  -m 120.0 -o gof_KS.json 
+ 
+  plotGof.py gof_KS.json --statistic KS --mass 120.0 -o gof_plot --title-right="GoF" --range 0 0.01
+
+  echo "---- GOF toy production ----"
+  combine -M GoodnessOfFit my_workspace_binned.root --algo=saturated -t 200 -s 1234  --setParameters rDsStar=1,rDs=1 -n _gof_saturated
+  echo "---- GOF data ----"
+  combine -M GoodnessOfFit my_workspace_binned.root --algo=saturated               --setParameters rDsStar=1,rDs=1 -n _gof_saturated
+  echo "---- Perform saturated test ----"
+  combineTool.py -M CollectGoodnessOfFit --input higgsCombine_gof_saturated.GoodnessOfFit.mH120.root higgsCombine_gof_saturated.GoodnessOfFit.mH120.1234.root  -m 120.0 -o gof_saturated.json 
+ 
+  plotGof.py gof_saturated.json --statistic saturated --mass 120.0 -o gof_plot --title-right="GoF" --range 0 0.01
 
 else
 
