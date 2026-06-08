@@ -35,6 +35,7 @@ processes = ["data",
              ]
 
 
+
 colors = {"dsMu":           ROOT.kBlue - 2,
           "dsTau":          ROOT.kGreen,
           "dsStarMu":       ROOT.kCyan,
@@ -53,7 +54,24 @@ colors = {"dsMu":           ROOT.kBlue - 2,
           "comb":           ROOT.kGray+1,
           "data":           ROOT.kBlack}
 
-
+legend = {"dsMu":           "B_{s}#rightarrow D_{s}#mu#nu",
+          "dsTau":          "B_{s}#rightarrow D_{s}#tau#nu",
+          "dsStarMu":       "B_{s}#rightarrow D*_{s}#mu#nu",
+          "dsStarTau":      "B_{s}#rightarrow D*_{s}#tau#nu",
+          "hb_fd":          "B^{#pm 0}_{(s)}, #Lambda_{b} #rightarrow feed-down",
+          "hb_dc":          "B^{#pm 0}_{(s)}, #Lambda_{b} #rightarrow double-charm",
+          "hb_others":      "other b #rightarrow D_{s} + #mu",
+          "hb_bs_fd":       "B_{s} #rightarrow feed-down",
+          "hb_bs_dc":       "B_{s} #rightarrow double-charm",
+          "hb_b0_fd":       "B^{0} #rightarrow feed-down",
+          "hb_b0_dc":       "B^{0} #rightarrow double-charm",
+          "hb_bpm_fd":      "B^{#pm} #rightarrow feed-down",
+          "hb_bpm_dc":      "B^{#pm} #rightarrow double-charm",
+          "hb_lambdab_fd":  "#Lambda_{b} #rightarrow feed-down",
+          "hb_lambdab_dc":  "#Lambda_{b} #rightarrow double-charm",
+          "comb":           "Comb. + Fakes",
+          "data":           "Data",
+}
 
 # parsing
 parser = argparse.ArgumentParser()
@@ -73,12 +91,12 @@ def prepareCanvas():
   return c1
 
 def prepareLegend():
-  leg = ROOT.TLegend(.2,.60,.88,0.88)
+  leg = ROOT.TLegend(.2,.65,.88,0.88)
   leg.SetBorderSize(0)
   leg.SetFillColor(0)
   leg.SetFillStyle(0)
   leg.SetTextFont(42)
-  leg.SetTextSize(0.035)
+  leg.SetTextSize(0.030)
   leg.SetNColumns(2)
 
   return leg
@@ -89,7 +107,8 @@ def producePlots(tDir, pre_or_post):
   #number of channels
   subKeys = tDir.GetListOfKeys()
   nChan   = len(subKeys)
-  
+ 
+   
   for k in subKeys:
   
     key = k.GetName()
@@ -107,7 +126,7 @@ def producePlots(tDir, pre_or_post):
     else:
       print(f"... Producing prefit plot for channel {key}")
   
-    hs_prefit     = ROOT.THStack(f"{key}"     , f"{key}"     )
+    hs_prefit     = ROOT.THStack(f"Fitting Category {key[2:]}"     , f"Fitting Category {key[2:]}"     )
   
     #this is a directory with all histograms
     histos       = tDir.Get(key)
@@ -121,7 +140,13 @@ def producePlots(tDir, pre_or_post):
     c1 = prepareCanvas()
     leg = prepareLegend()
  
-    #pdb.set_trace()
+    #load here a template (DsMu) which tell us how many real bins we have  
+    templates = ROOT.TFile.Open(f"/work/pahwagne/RDsTools/plots/cmsplots_binned/{args.file}/histos_DsMu_{key[2:]}.root")
+    template_keys = templates.GetListOfKeys()
+    #wlog we can take the first key (this is the central curve if no sys up/down)
+    template_h = templates.Get(template_keys[0].GetName())
+    real_bins  = template_h.GetNbinsX()
+
  
     for name in processes:
   
@@ -131,52 +156,115 @@ def producePlots(tDir, pre_or_post):
 
       print(f"... Plotting for process {name}")
   
+      #pdb.set_trace()
+
       #prepare the histo in the same style
       if name != "data":
+
         #th1d = histos.Get(name)
         th1d = histos.Get(name).Clone(f"{name}_{key}")
+        new_th1d = ROOT.TH1D("{name}_{key}_new","{name}_{key}_new", real_bins, 0, real_bins)
+ 
+        #root stupid histogram starts at 1
+        for i in range(1,real_bins+1):
+          new_th1d.SetBinContent (i,th1d.GetBinContent(i))
+          new_th1d.SetBinError   (i,th1d.GetBinError(i)  )
+
+
+
         th1d.SetDirectory(0)
         th1d.SetFillColor(colors[name])
         th1d.SetLineColor(colors[name])
-        hs_prefit.Add(th1d)
+
+        new_th1d.SetDirectory(0)
+        new_th1d.SetFillColor(colors[name])
+        new_th1d.SetLineColor(colors[name])
+
+        #hs_prefit.Add(th1d)
+        hs_prefit.Add(new_th1d)
+
+        leg.AddEntry(new_th1d, legend[name], "F")
+
+
       else:
         #obj = histos.Get(name)
-        obj = histos.Get(name).Clone(f"data_{key}")
-        #th1d.SetMarkerStyle(8)
-        #th1d.GetYaxis().SetTitle("events")
-        #th1d.GetYaxis().SetRangeUser(1e-3, th1d.GetBinContent(th1d.GetMaximumBin())*1.8)
+        obj     = histos.Get(name).Clone(f"data_{key}")
+        #with original binning
+        new_obj = ROOT.TGraphAsymmErrors()
+
+        for i in range(real_bins):
+
+          #extract values of graph
+          x  = obj.GetX()[i]
+          y  = obj.GetY()[i]
+          
+          exl = obj.GetEXlow()[i]
+          exh = obj.GetEXhigh()[i]
+          eyl = obj.GetEYlow()[i]
+          eyh = obj.GetEYhigh()[i] 
+
+          new_obj.SetPoint     (i, x, y)
+          new_obj.SetPointError(i, exl, exh, eyl, eyh)
+
+
+        ##write into here only non-empty bins
+        #new_graph = ROOT.TGraphAsymmErrors()
+
+        ##dont plot all the empty bins
+        #ntot = obj.GetN()
+        #for i in range(ntot):
+        #  if (obj.GetPointY(i) < 10e-3)
   
         obj.SetMarkerStyle(8)
         obj.SetMarkerSize(1)
         obj.SetLineColor(ROOT.kBlack)
+ 
+        new_obj.SetMarkerStyle(8)
+        new_obj.SetMarkerSize(1)
+        new_obj.SetLineColor(ROOT.kBlack)
+
+        leg.AddEntry(new_obj, legend[name], "LEP")
     
  
-    total = histos.Get("total").Clone()
- 
+    #total = histos.Get("total").Clone()
 
     #get the total error
     #err = histos.Get("total")
     err = histos.Get("total").Clone(f"err_{key}")
+    new_err = ROOT.TH1D("new_err","new_err",real_bins,0,real_bins)
+    for i in range(1, real_bins + 1):
+      new_err.SetBinContent(i,err.GetBinContent(i))
+
     err.SetDirectory(0)
     err.SetLineWidth(0)
     err.SetFillColor(ROOT.kBlack)
     err.SetFillStyle(3144)
     err.SetMarkerStyle(0)
 
+    new_err.SetDirectory(0)
+    new_err.SetLineWidth(0)
+    new_err.SetFillColor(ROOT.kBlack)
+    new_err.SetFillStyle(3144)
+    new_err.SetMarkerStyle(0)
+
 
     hs_prefit    .Draw("HIST")
     err.Draw("E2 SAME");
+    leg.Draw("SAME");
+    #new_err.Draw("E2 SAME");
 
  
     #needs to be after drawing!!
     hs_prefit.GetYaxis().SetTitle("events")
+    hs_prefit.GetXaxis().SetTitle("Bin")
     hs_prefit.SetMinimum(1e-3)
     max_y = hs_prefit.GetMaximum()
     hs_prefit.SetMaximum(max_y * 1.8)
 
   
     if drawData: 
-      obj.Draw("EP SAME")
+      #obj.Draw("EP SAME")
+      new_obj.Draw("EP SAME")
      
     c1.SaveAs(f"{dest}/{key}_{pre_or_post}.pdf")
  
@@ -207,7 +295,7 @@ os.system(f"mkdir -p {dest}")
 #####################
 
 #read file
-f = f"{fit}/fitDiagnostics_results_asimov.root"
+f = f"{fit}/fitDiagnostics_results_asimov_{args.file}.root"
 
 #copy shapes file and save :))
 os.system(f"cp {f} {dest}")
@@ -217,7 +305,7 @@ directory = rf.Get("shapes_prefit")
 producePlots(directory, "prefit_asimov")
 
 #read file
-f = f"{fit}/fitDiagnostics_results_data.root"
+f = f"{fit}/fitDiagnostics_results_data_{args.file}.root"
 
 #copy shapes file and save :))
 os.system(f"cp {f} {dest}")

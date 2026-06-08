@@ -44,8 +44,8 @@ for file in $path; do
 
   #prepare commands
   command_line+="$bin_number=$file "
-  map_rds+="--PO map=$bin_number/dsTau:rDs[1,-1,3] "
-  map_rdsstar+="--PO map=$bin_number/dsStarTau:rDsStar[1,-1,3] "
+  map_rds+="--PO map=$bin_number/dsTau:rDs[1,-1,5] "
+  map_rdsstar+="--PO map=$bin_number/dsStarTau:rDsStar[1,-1,5] "
 
 done
 
@@ -70,7 +70,7 @@ echo "=======> converted datacard into workspace"
 
 
 
-for x in $(awk 'BEGIN {for (i=5; i<=15; i++) printf "%.3f ", i/10}')
+for x in $(awk 'BEGIN {for (i=1; i<=30; i++) printf "%.3f ", i/10}')
 
 do
 
