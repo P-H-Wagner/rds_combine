@@ -14,6 +14,8 @@ if [ -z "$3" ]; then
   asimov=true
   blind=false
   folder=""
+  lo=0.5
+  hi=1.5
 
 else
   echo "Running blinded data fit"
@@ -21,6 +23,9 @@ else
   blind=True
   #folder="blind/"
   folder=""
+  lo=0.0
+  hi=3.0
+
 fi
 
 #make a folder in this directory to save all the plots
@@ -29,6 +34,12 @@ mkdir -p $toSave
 
 #path="/work/pahwagne/RDsTools/fit/datacards_2D/*${var}*${splitter}*_bin_*"
 #dest="/work/pahwagne/RDsTools/fit/datacards_2D/datacard_${var}_in_${splitter}_regions_combined.txt"
+
+#rDsInit=0.3
+#rDsStarInit=0.252
+rDsInit=1.0
+rDsStarInit=1.0
+
 
 
 if [[ $var == "combo" ]]; then
@@ -53,9 +64,9 @@ for file in $path; do
   bin_number=$(echo "$file" | sed -E 's/.*ch([0-9]+).*/ch\1/')
 
   #temp
-  if [[ $bin_number != "ch0" ]]; then
-  #if [[ $bin_number == "ch0" && $bin_number == "ch1" && $bin_number == "ch2" && $bin_number == "ch3" ]]; then
-  #if [[ $bin_number == "ch17" || $bin_number == "ch18" || $bin_number == "ch19" || $bin_number == "ch20" || $bin_number == "ch21" || $bin_number == "ch22" || $bin_number == "ch23" || $bin_number == "ch24" || $bin_number == "ch9" ]]; then
+  #if [[ $bin_number != "ch7" || $bin_number != "ch13" ]]; then
+  if [[ $bin_number == "ch0" ]]; then
+  #if [[ $bin_number == "ch5" || $bin_number == "ch6" || $bin_number == "ch7" || $bin_number == "ch8" || $bin_number == "ch9" || $bin_number == "ch10" ]]; then
     continue
   fi
 
@@ -63,8 +74,8 @@ for file in $path; do
 
   #prepare commands
   command_line+="$bin_number=$file "
-  map_rds+="--PO map=$bin_number/dsTau:rDs[1,-1,3] "
-  map_rdsstar+="--PO map=$bin_number/dsStarTau:rDsStar[1,-1,3] "
+  map_rds+="--PO map=$bin_number/dsTau:rDs[1,$lo,$hi] "
+  map_rdsstar+="--PO map=$bin_number/dsStarTau:rDsStar[1,$lo,$hi] "
   #compare with R(D)
   #map_rds+="--PO map=$bin_number/dsTau:rDs[0.3,-1,3] "
   #map_rdsstar+="--PO map=$bin_number/dsStarTau:rDsStar[0.252,-1,3] "
@@ -111,8 +122,9 @@ bin_by_bin_stat="* autoMCStats 0"
 #####################
 
 rates="bs,r_hb,r_comb"
+yields="bs_fd_yield,bs_dc_yield,bpm_yield,b0_yield,lambda_yield,others_yield,dsYield,dsStarYield"
 hammer="e1Bgl,e2Bgl,e3Bgl,e4Bgl,e5Bgl,e6Bgl,e7Bgl,e8Bgl,e9Bgl,e10Bgl,e1Bcl,e2Bcl,e3Bcl,e4Bcl,e5Bcl,e6Bcl"
-all="${rates},${hammer}"
+all="${rates},${hammer},${yields}"
 
 #convert datacard into workspace
 text2workspace.py $dest -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel $map_rds $map_rdsstar --PO verbose -o my_workspace_binned_${datetime}.root
@@ -126,29 +138,58 @@ if $asimov; then
   # run 1D fit for rDs with rDs float #
   #########################################
   
-  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 -n _1D_scan_rDs_float_all_$datetime 
-  plot1DScan.py higgsCombine_1D_scan_rDs_float_all.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_float_all_$datetime  --main-label "Asimov" --main-color=4 \
+  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit -n _1D_scan_rDs_float_all_$datetime 
+  plot1DScan.py higgsCombine_1D_scan_rDs_float_all_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_float_all_$datetime  --main-label "Asimov" --main-color=4 \
 
   ##########################################################
   # run 1D fit for rDs with rDs float and hammer fixed #
   ##########################################################
   
-  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $hammer -n _1D_scan_rDs_freeze_hammer_$datetime
- plot1DScan.py higgsCombine_1D_scan_rDs_freeze_hammer.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_freeze_hammer_$datetime  --main-label "Freeze Hammer" \
+  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit --freezeParameters $hammer -n _1D_scan_rDs_freeze_hammer_$datetime
+  plot1DScan.py higgsCombine_1D_scan_rDs_freeze_hammer_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_freeze_hammer_$datetime  --main-label "Freeze Hammer" \
    
   #########################################################
   # run 1D fit for rDs with rDs float and all   fixed #
   #########################################################
   
-  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $all -n _1D_scan_rDs_freeze_all_$datetime
-  plot1DScan.py higgsCombine_1D_scan_rDs_freeze_all.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_freeze_all_$datetime  --main-label "Stat only" \
+  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit --freezeParameters $all -n _1D_scan_rDs_freeze_all_$datetime
+  plot1DScan.py higgsCombine_1D_scan_rDs_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_freeze_all_$datetime  --main-label "Stat only" \
 
-  ###########################
-  # overlay all likelihoods #
-  ###########################
+  ############################
+  ## overlay all likelihoods #
+  ############################
  
-  plot1DScan.py higgsCombine_1D_scan_rDs_freeze_all.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_overlay_likelihoods_$datetime  --main-label "Stat only" \
-  --others "higgsCombine_1D_scan_rDs_freeze_hammer.MultiDimFit.mH120.root:Freeze Hammer:4" "higgsCombine_1D_scan_rDs_float_all.MultiDimFit.mH120.root:Asimov:2" 
+  plot1DScan.py higgsCombine_1D_scan_rDs_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_overlay_likelihoods_$datetime  --main-label "Stat only" \
+  --others "higgsCombine_1D_scan_rDs_freeze_hammer_${datetime}.MultiDimFit.mH120.root:Freeze Hammer:4" "higgsCombine_1D_scan_rDs_float_all_${datetime}.MultiDimFit.mH120.root:Asimov:2" 
+
+  ##########################################
+  ## run 1D fit for rDs with rDs frozen #
+  ##########################################
+  #
+  #combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 0 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 -n _1D_scan_rDs_2nd_POI_frozen_float_all_$datetime 
+  #plot1DScan.py higgsCombine_1D_scan_rDs_2nd_POI_frozen_float_all_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_2nd_POI_frozen_float_all_$datetime  --main-label "Asimov" --main-color=4 \
+
+  ###########################################################
+  ## run 1D fit for rDs with rDs frozen and hammer fixed #
+  ###########################################################
+  #
+  #combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 0 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $hammer -n _1D_scan_rDs_2nd_POI_frozen_freeze_hammer_$datetime
+  #plot1DScan.py higgsCombine_1D_scan_rDs_2nd_POI_frozen_freeze_hammer_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_2nd_POI_frozen_freeze_hammer_$datetime  --main-label "Freeze Hammer" \
+  # 
+  ##########################################################
+  ## run 1D fit for rDs with rDs frozen and all   fixed #
+  ##########################################################
+  #
+  #combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDs --floatOtherPOIs 0 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $all -n _1D_scan_rDs_2nd_POI_frozen_freeze_all_$datetime
+  #plot1DScan.py higgsCombine_1D_scan_rDs_2nd_POI_frozen_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_2nd_POI_frozen_freeze_all_$datetime  --main-label "Stat only" \
+
+  ############################
+  ## overlay all likelihoods #
+  ############################
+ 
+  #plot1DScan.py higgsCombine_1D_scan_rDs_2nd_POI_frozen_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDs -o 1D_scan_rDs_2nd_POI_frozen_overlay_likelihoods_$datetime  --main-label "Stat only" \
+  #--others "higgsCombine_1D_scan_rDs_2nd_POI_frozen_freeze_hammer_${datetime}.MultiDimFit.mH120.root:Freeze Hammer:4" "higgsCombine_1D_scan_rDs_2nd_POI_frozen_float_all_${datetime}.MultiDimFit.mH120.root:Asimov:2" 
+
 
 
   
@@ -163,29 +204,60 @@ if $asimov; then
   # run 1D fit for rDsStar with rDs float #
   #########################################
   
-  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 -n _1D_scan_rDsStar_float_all_$datetime 
-  plot1DScan.py higgsCombine_1D_scan_rDsStar_float_all.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_float_all_$datetime  --main-label "Asimov" --main-color=4 \
+  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit -n _1D_scan_rDsStar_float_all_$datetime 
+  plot1DScan.py higgsCombine_1D_scan_rDsStar_float_all_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_float_all_$datetime  --main-label "Asimov" --main-color=4 \
 
   ##########################################################
   # run 1D fit for rDsStar with rDs float and hammer fixed #
   ##########################################################
   
-  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $hammer -n _1D_scan_rDsStar_freeze_hammer_$datetime
- plot1DScan.py higgsCombine_1D_scan_rDsStar_freeze_hammer.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_freeze_hammer_$datetime  --main-label "Freeze Hammer" \
+  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit --freezeParameters $hammer -n _1D_scan_rDsStar_freeze_hammer_$datetime
+  plot1DScan.py higgsCombine_1D_scan_rDsStar_freeze_hammer_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_freeze_hammer_$datetime  --main-label "Freeze Hammer" \
    
   #########################################################
   # run 1D fit for rDsStar with rDs float and all   fixed #
   #########################################################
   
-  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $all -n _1D_scan_rDsStar_freeze_all_$datetime
-  plot1DScan.py higgsCombine_1D_scan_rDsStar_freeze_all.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_freeze_all_$datetime  --main-label "Stat only" \
+  #combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit --freezeParameters $all -n _1D_scan_rDsStar_freeze_all_$datetime
+  combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 1 -t -1 -v 1  --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit --freezeParameters $all -n _1D_scan_rDsStar_freeze_all_$datetime
+  plot1DScan.py higgsCombine_1D_scan_rDsStar_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_freeze_all_$datetime  --main-label "Stat only" \
 
   ###########################
   # overlay all likelihoods #
   ###########################
  
-  plot1DScan.py higgsCombine_1D_scan_rDsStar_freeze_all.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_overlay_likelihoods_$datetime  --main-label "Stat only" \
-  --others "higgsCombine_1D_scan_rDsStar_freeze_hammer.MultiDimFit.mH120.root:Freeze Hammer:4" "higgsCombine_1D_scan_rDsStar_float_all.MultiDimFit.mH120.root:Asimov:2" 
+  plot1DScan.py higgsCombine_1D_scan_rDsStar_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_overlay_likelihoods_$datetime  --main-label "Stat only" \
+  --others "higgsCombine_1D_scan_rDsStar_freeze_hammer_${datetime}.MultiDimFit.mH120.root:Freeze Hammer:4" "higgsCombine_1D_scan_rDsStar_float_all_${datetime}.MultiDimFit.mH120.root:Asimov:2" 
+
+  ##########################################
+  ## run 1D fit for rDsStar with rDs frozen #
+  ##########################################
+  #
+  #combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 0 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 -n _1D_scan_rDsStar_2nd_POI_frozen_float_all_$datetime 
+  #plot1DScan.py higgsCombine_1D_scan_rDsStar_2nd_POI_frozen_float_all_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_2nd_POI_frozen_float_all_$datetime  --main-label "Asimov" --main-color=4 \
+
+  ###########################################################
+  ## run 1D fit for rDsStar with rDs frozen and hammer fixed #
+  ###########################################################
+  #
+  #combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 0 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $hammer -n _1D_scan_rDsStar_2nd_POI_frozen_freeze_hammer_$datetime
+  #plot1DScan.py higgsCombine_1D_scan_rDsStar_2nd_POI_frozen_freeze_hammer_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_2nd_POI_frozen_freeze_hammer_$datetime  --main-label "Freeze Hammer" \
+  # 
+  ##########################################################
+  ## run 1D fit for rDsStar with rDs frozen and all   fixed #
+  ##########################################################
+  #
+  #combine -M MultiDimFit my_workspace_binned_${datetime}.root --algo grid --points 200 --saveInactivePOI 1 -P rDsStar --floatOtherPOIs 0 -t -1 -v 1  --setParameters rDs=1,rDsStar=1 --freezeParameters $all -n _1D_scan_rDsStar_2nd_POI_frozen_freeze_all_$datetime
+  #plot1DScan.py higgsCombine_1D_scan_rDsStar_2nd_POI_frozen_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_2nd_POI_frozen_freeze_all_$datetime  --main-label "Stat only" \
+
+  ############################
+  ## overlay all likelihoods #
+  ############################
+ 
+  #plot1DScan.py higgsCombine_1D_scan_rDsStar_2nd_POI_frozen_freeze_all_${datetime}.MultiDimFit.mH120.root --POI rDsStar -o 1D_scan_rDsStar_2nd_POI_frozen_overlay_likelihoods_$datetime  --main-label "Stat only" \
+  #--others "higgsCombine_1D_scan_rDsStar_2nd_POI_frozen_freeze_hammer_${datetime}.MultiDimFit.mH120.root:Freeze Hammer:4" "higgsCombine_1D_scan_rDsStar_2nd_POI_frozen_float_all_${datetime}.MultiDimFit.mH120.root:Asimov:2" 
+
+
 
   ##########################################
   # run toys fit                           # 
@@ -214,35 +286,101 @@ if $asimov; then
   ## IMPACT PLOTS  #
   ##################
  
-  combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doInitialFit          -t -1 --setParameters rDsStar=1,rDs=1 --robustFit 1 
-  combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doFits                -t -1 --setParameters rDsStar=1,rDs=1
-  combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar -o impacts_binned_${datetime}.json  -t -1 --setParameters rDsStar=1,rDs=1 
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doInitialFit          -t -1 --setParameters rDsStar=1,rDs=1 --robustFit 1 
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doFits                -t -1 --setParameters rDsStar=1,rDs=1
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar -o impacts_binned_${datetime}.json  -t -1 --setParameters rDsStar=1,rDs=1 
+ 
+  #plotImpacts.py -i impacts_binned_${datetime}.json -o impact_plot_rDs_binned_$datetime     --POI rDs     #--blind
+  #plotImpacts.py -i impacts_binned_${datetime}.json -o impact_plot_rDsStar_binned_$datetime --POI rDsStar #--blind
+
+
+  echo "-------------------------------- IMPACTS --------------------------------" 
+  combineTool.py -M Impacts \
+    -d my_workspace_binned_${datetime}.root \
+    -m 125 \
+    --redefineSignalPOIs rDs \
+    --setParameters rDsStar=$rDsStarInit \
+    --floatParameters rDsStar \
+    -t -1 \
+    --doInitialFit
+ 
+  combineTool.py -M Impacts \
+    -d my_workspace_binned_${datetime}.root \
+    -m 125 \
+    --redefineSignalPOIs rDs \
+    --setParameters rDsStar=$rDsStarInit \
+    --floatParameters rDsStar \
+    -t -1 \
+    --doFits
   
-  plotImpacts.py -i impacts_binned_${datetime}.json -o impact_plot_rDs_binned_$datetime     --POI rDs     #--blind
-  plotImpacts.py -i impacts_binned_${datetime}.json -o impact_plot_rDsStar_binned_$datetime --POI rDsStar #--blind
+  combineTool.py -M Impacts \
+    -d my_workspace_binned_${datetime}.root \
+    -m 125 \
+    --redefineSignalPOIs rDs \
+    --setParameters rDsStar=$rDsStarInit \
+    --floatParameters rDsStar \
+    -t -1 \
+    -o impacts_rDs_${datetime}.json
+
+  plotImpacts.py -i impacts_rDs_${datetime}.json -o impacts_rDs_${datetime}
+
+
+
+  echo "-------------------------------- IMPACTS --------------------------------" 
+
+  combineTool.py -M Impacts \
+    -d my_workspace_binned_${datetime}.root \
+    -m 125 \
+    --redefineSignalPOIs rDsStar \
+    --setParameters rDs=$rDsInit \
+    --floatParameters rDs \
+    -t -1 \
+    --doInitialFit
+ 
+  combineTool.py -M Impacts \
+    -d my_workspace_binned_${datetime}.root \
+    -m 125 \
+    --redefineSignalPOIs rDsStar \
+    --setParameters rDs=$rDsInit \
+    --floatParameters rDs \
+    -t -1 \
+    --doFits
+  
+  combineTool.py -M Impacts \
+    -d my_workspace_binned_${datetime}.root \
+    -m 125 \
+    --redefineSignalPOIs rDsStar \
+    --setParameters rDs=$rDsInit \
+    --floatParameters rDs \
+    -t -1 \
+    -o impacts_rDsStar_${datetime}.json
+
+  plotImpacts.py -i impacts_rDsStar_${datetime}.json -o impacts_rDsStar_${datetime}
+
 
   ###########################
   ### GOODNESS OF FIT PLOTS #
   ###########################
   ##
-  #KS test between data and postfit expectation, calculate KS for all toys and throw a distribution. 
-  #echo "---- GOF toy production ----"
-  #combine -M GoodnessOfFit my_workspace_binned.root --algo=KS -t 200 -s 1234  --setParameters rDsStar=1,rDs=1 -n _gof_KS
-  #echo "---- GOF data ----"
-  #combine -M GoodnessOfFit my_workspace_binned.root --algo=KS               --setParameters rDsStar=1,rDs=1 -n _gof_KS
-  #echo "---- Perform KS test ----"
-  #combineTool.py -M CollectGoodnessOfFit --input higgsCombine_gof_KS.GoodnessOfFit.mH120.root higgsCombine_gof_KS.GoodnessOfFit.mH120.1234.root  -m 120.0 -o gof_KS.json 
- 
-  #plotGof.py gof_KS.json --statistic KS --mass 120.0 -o gof_plot_KS --title-right="GoF KS" --range 0 0.01
 
-  #echo "---- GOF toy production ----"
-  #combine -M GoodnessOfFit my_workspace_binned.root --algo=saturated -t 200 -s 1234  --setParameters rDsStar=1,rDs=1 -n _gof_saturated
-  #echo "---- GOF data ----"
-  #combine -M GoodnessOfFit my_workspace_binned.root --algo=saturated               --setParameters rDsStar=1,rDs=1 -n _gof_saturated
-  #echo "---- Perform saturated test ----"
-  #combineTool.py -M CollectGoodnessOfFit --input higgsCombine_gof_saturated.GoodnessOfFit.mH120.root higgsCombine_gof_saturated.GoodnessOfFit.mH120.1234.root  -m 120.0 -o gof_saturated.json 
+  #KS test between data and postfit expectation, calculate KS for all toys and throw a distribution. 
+  echo "---- GOF toy production ----"
+  combine -M GoodnessOfFit my_workspace_binned_${datetime}.root --algo=KS -t 80 -s 1968 --setParameters rDsStar=$rDsStarInit,rDs=$rDsInit -n _gof_KS_${datetime}
+  echo "---- GOF data ----"
+  combine -M GoodnessOfFit my_workspace_binned_${datetime}.root --algo=KS               --setParameters rDsStar=$rDsStarInit,rDs=$rDsInit -n _gof_KS_${datetime}
+  echo "---- Perform KS test ----"
+  combineTool.py -M CollectGoodnessOfFit --input higgsCombine_gof_KS_${datetime}.GoodnessOfFit.mH120.root higgsCombine_gof_KS_${datetime}.GoodnessOfFit.mH120.1968.root  -m 120.0 -o gof_KS_${datetime}.json 
  
-  #plotGof.py gof_saturated.json --statistic saturated --mass 120.0 -o gof_plot_sat --title-right="GoF Saturated" --range 0 0.01
+  #plotGof.py gof_KS_${datetime}.json --statistic KS --mass 120.0 -o gof_plot_KS_${datetime} --title-right="GoF KS" --range 0 0.01
+
+  echo "---- GOF toy production ----"
+  combine -M GoodnessOfFit my_workspace_binned_${datetime}.root --algo=saturated -t 80 -s 1968  --setParameters rDsStar=$rDsStarInit,rDs=$rDsInit -n _gof_saturated_${datetime}
+  echo "---- GOF data ----"
+  combine -M GoodnessOfFit my_workspace_binned_${datetime}.root --algo=saturated               --setParameters rDsStar=$rDsStarInit,rDs=$rDsInit -n _gof_saturated_${datetime}
+  echo "---- Perform saturated test ----"
+  combineTool.py -M CollectGoodnessOfFit --input higgsCombine_gof_saturated_${datetime}.GoodnessOfFit.mH120.root higgsCombine_gof_saturated_${datetime}.GoodnessOfFit.mH120.1968.root  -m 120.0 -o gof_saturated_${datetime}.json 
+ 
+  #plotGof.py gof_saturated_${datetime}.json --statistic saturated --mass 120.0 -o gof_plot_sat_${datetime} --title-right="GoF Saturated" --range 0 0.01
 
 
   ##################################################  
@@ -297,13 +435,35 @@ else
   
   #crahse swith --robustFit 1 as suggested in https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2023/parametric_exercise/?h=impact#two-dimensional-likelihood-scan (section Part6: MultiSignalModel, Impacts) 
  
-  echo "------ IMPACT PLOTS ---------" 
+  #echo "------ IMPACT PLOTS ---------" 
   combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_data_blind_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doInitialFit           #--setParameters rDsStar=1,rDs=1 -v 0 
   combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_data_blind_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar --doFits                 #--setParameters rDsStar=1,rDs=1 -v 0
   combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH -n .impacts_binned_data_blind_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -P rDsStar -o impacts_binned_data_blind_${datetime}.json   #--setParameters rDsStar=1,rDs=1 -v 0 
   
   plotImpacts.py -i impacts_binned_data_blind_${datetime}.json -o impact_plot_rDs_binned_data_blind_$datetime     --POI rDs     --blind
   plotImpacts.py -i impacts_binned_data_blind_${datetime}.json -o impact_plot_rDsStar_binned_data_blind_$datetime --POI rDsStar --blind
+
+
+  #####################
+  # IMPACT FREEZE RDS #
+  #####################
+
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH,rDs -n .impacts_binned_data_blind_freeze_rDs_$datetime --cminDefaultMinimizerStrategy 0 -P rDsStar --doInitialFit                                             --setParameters rDs=1 -v 0 
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH,rDs -n .impacts_binned_data_blind_freeze_rDs_$datetime --cminDefaultMinimizerStrategy 0 -P rDsStar --doFits                                                   --setParameters rDs=1 -v 0
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH,rDs -n .impacts_binned_data_blind_freeze_rDs_$datetime --cminDefaultMinimizerStrategy 0 -P rDsStar -o impacts_binned_data_blind_freeze_rDs_${datetime}.json   --setParameters rDs=1 -v 0 
+  
+  #plotImpacts.py -i impacts_binned_data_blind_freeze_rDs_${datetime}.json -o impact_plot_rDsStar_binned_data_blind_freeze_rDs_$datetime --POI rDsStar --blind
+
+  #########################
+  # IMPACT FREEZE RDSStar #
+  #########################
+
+
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH,rDsStar -n .impacts_binned_data_blind_freeze_rDsStar_$datetime --cminDefaultMinimizerStrategy 0 -P rDs --doInitialFit                                                 --setParameters rDsStar=1 -v 0 
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH,rDsStar -n .impacts_binned_data_blind_freeze_rDsStar_$datetime --cminDefaultMinimizerStrategy 0 -P rDs --doFits                                                       --setParameters rDsStar=1 -v 0
+  #combineTool.py -M Impacts -d my_workspace_binned_${datetime}.root -m 125 --freezeParameters MH,rDsStar -n .impacts_binned_data_blind_freeze_rDsStar_$datetime --cminDefaultMinimizerStrategy 0 -P rDs -o impacts_binned_data_blind_freeze_rDsStar_${datetime}.json   --setParameters rDsStar=1 -v 0 
+  
+  #plotImpacts.py -i impacts_binned_data_blind_freeze_rDsStar_${datetime}.json -o impact_plot_rDsStar_binned_data_blind_freeze_rDsStar_$datetime --POI rDs --blind
 
 
   ################
@@ -321,7 +481,7 @@ else
   # Save pre- and posfit shapes, this is a 2D fit! #
   ##################################################  
 
-  combine -M FitDiagnostics my_workspace_binned_$datetime.root --saveShapes --saveWithUncertainties --saveNormalizations --setParameters rDs=1,rDsStar=1 --verbose 0 -n _results_data_$datetime  --ignoreCovWarning
+  combine -M FitDiagnostics my_workspace_binned_$datetime.root --saveShapes --saveWithUncertainties --saveNormalizations --setParameters rDs=$rDsInit,rDsStar=$rDsStarInit --verbose 0 -n _results_data_$datetime  --ignoreCovWarning
 
 
 fi

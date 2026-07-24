@@ -1,3 +1,4 @@
+import json
 import ROOT
 import argparse
 import os
@@ -20,37 +21,43 @@ ROOT.gROOT.SetBatch(True)
 processes = ["data",
              "comb",
              "dsTau",
-             "dsStarTau",
              "dsMu",
+             "dsStarTau",
              "dsStarMu",
              "hb_bs_fd",
              "hb_bs_dc" ,
-             "hb_b0_fd",
-             "hb_b0_dc",
-             "hb_bpm_fd",
-             "hb_bpm_dc", 
-             "hb_lambdab_fd", 
-             "hb_lambdab_dc", 
+             "hb_b0",
+             #"hb_b0_fd",
+             #"hb_b0_dc",
+             "hb_bpm",
+             #"hb_bpm_fd",
+             #"hb_bpm_dc", 
+             "hb_lambdab", 
+             #"hb_lambdab_fd", 
+             #"hb_lambdab_dc", 
              "hb_others"
              ]
 
 
 
 colors = {"dsMu":           ROOT.kBlue - 2,
-          "dsTau":          ROOT.kGreen,
+          "dsTau":          ROOT.kBlue - 2,
           "dsStarMu":       ROOT.kCyan,
-          "dsStarTau":      ROOT.kOrange,
+          "dsStarTau":      ROOT.kCyan,
           "hb_fd":          ROOT.kRed -7,
           "hb_dc":          ROOT.kRed -2,
           "hb_others":      ROOT.kRed -5,
           "hb_bs_fd":       ROOT.kRed +2,
           "hb_bs_dc":       ROOT.kRed -7,
-          "hb_b0_fd":       ROOT.kMagenta,
-          "hb_b0_dc":       ROOT.kMagenta -7,
-          "hb_bpm_fd":      ROOT.kOrange + 7,
-          "hb_bpm_dc":      ROOT.kOrange + 5,
-          "hb_lambdab_fd":  ROOT.kViolet,
-          "hb_lambdab_dc":  ROOT.kViolet-7,
+          "hb_b0":          ROOT.kMagenta,
+          #"hb_b0_fd":      ROOT.kMagenta,
+          #"hb_b0_dc":      ROOT.kMagenta -7,
+          "hb_bpm":         ROOT.kOrange + 7,
+          #"hb_bpm_fd":     ROOT.kOrange + 7,
+          #"hb_bpm_dc":     ROOT.kOrange + 5,
+          "hb_lambdab":     ROOT.kViolet,
+          #"hb_lambdab_fd": ROOT.kViolet,
+          #"hb_lambdab_dc": ROOT.kViolet-7,
           "comb":           ROOT.kGray+1,
           "data":           ROOT.kBlack}
 
@@ -61,14 +68,17 @@ legend = {"dsMu":           "B_{s}#rightarrow D_{s}#mu#nu",
           "hb_fd":          "B^{#pm 0}_{(s)}, #Lambda_{b} #rightarrow feed-down",
           "hb_dc":          "B^{#pm 0}_{(s)}, #Lambda_{b} #rightarrow double-charm",
           "hb_others":      "other b #rightarrow D_{s} + #mu",
-          "hb_bs_fd":       "B_{s} #rightarrow feed-down",
-          "hb_bs_dc":       "B_{s} #rightarrow double-charm",
-          "hb_b0_fd":       "B^{0} #rightarrow feed-down",
-          "hb_b0_dc":       "B^{0} #rightarrow double-charm",
-          "hb_bpm_fd":      "B^{#pm} #rightarrow feed-down",
-          "hb_bpm_dc":      "B^{#pm} #rightarrow double-charm",
-          "hb_lambdab_fd":  "#Lambda_{b} #rightarrow feed-down",
-          "hb_lambdab_dc":  "#Lambda_{b} #rightarrow double-charm",
+          "hb_bs_fd":       "B_{s} #rightarrow D_{s} + #mu (fd)",
+          "hb_bs_dc":       "B_{s} #rightarrow D_{s} + #mu (cc)",
+          "hb_b0":       "B^{0} #rightarrow feed-down",
+          #"hb_b0_fd":       "B^{0} #rightarrow feed-down",
+          #"hb_b0_dc":       "B^{0} #rightarrow double-charm",
+          "hb_bpm":      "B^{#pm} #rightarrow D_{s} + #mu",
+          #"hb_bpm_fd":      "B^{#pm} #rightarrow feed-down",
+          #"hb_bpm_dc":      "B^{#pm} #rightarrow double-charm",
+          "hb_lambdab":  "#Lambda_{b} #rightarrow D_{s} + #mu",
+          #"hb_lambdab_fd":  "#Lambda_{b} #rightarrow feed-down",
+          #"hb_lambdab_dc":  "#Lambda_{b} #rightarrow double-charm",
           "comb":           "Comb. + Fakes",
           "data":           "Data",
 }
@@ -101,6 +111,71 @@ def prepareLegend():
 
   return leg
 
+def produceGoF(folder):
+
+  # open json files
+  with open(f"{dest}/gof_saturated_{folder}.json") as f:
+    sat = json.load(f)["120.0"] #higgs mass
+  with open(f"{dest}/gof_KS_{folder}.json") as f:
+    ks  = json.load(f)["120.0"] #higgs mass 
+
+  #for KS, we have one plot per category, loop over categories
+  for c in ks.keys():
+
+    print(f"====> producing GoF for category {c}")
+    obs = ks[c]["obs"][0] #float
+    p   = ks[c]["p"  ]    #float
+    toy = ks[c]["toy"]    #list
+
+    bins = 20
+    start = min(toy+[obs])
+    stop  = max(toy+[obs])
+
+    fig, ax = plt.subplots()
+    hist = plt.hist(toy, bins, (start, stop), histtype="bar", color = "b", rwidth = 0.7)
+    plt.ylabel("counts")
+    ymax = max(hist[0])
+    #plt.vlines(obs, ymin = 0, ymax = ymax, colors = "r")
+    width = 3
+    ax.annotate("", xy = (obs, 0), xytext = (obs, 0.3*ymax), arrowprops=dict(arrowstyle=f"->, head_width={0.1*width}",color = "r", lw=width))
+
+    plt.ylim(top=1.1*ymax)
+    txt = f"p-value = {p}"
+    ax.text(0.7, 0.95,txt,transform=ax.transAxes)
+
+    plt.title(f"GoF - KS method - Category {c[2:]}")
+    plt.savefig(f"{dest}/gof_KS_{c}.pdf")
+    plt.close()
+
+  # only one plot for saturated
+  print(f"====> producing GoF for category {c}")
+  obs = sat["obs"][0] #float
+  p   = sat["p"  ]    #float
+  toy = sat["toy"]    #list
+ 
+  bins = 20
+  start = min(toy+[obs])
+  stop  = max(toy+[obs])
+
+  fig, ax = plt.subplots()
+  hist = plt.hist(toy, bins, (start, stop), histtype="bar", color = "b", rwidth = 0.7)
+  plt.ylabel("counts")
+  ymax = max(hist[0])
+  #plt.vlines(obs, ymin = 0, ymax = ymax, colors = "r")
+  width = 3
+  ax.annotate("", xy = (obs, 0), xytext = (obs, 0.3*ymax), arrowprops=dict(arrowstyle=f"->, head_width={0.1*width}",color = "r", lw=width))
+
+  plt.ylim(top=1.1*ymax)
+  txt = f"p-value = {p}"
+  ax.text(0.7, 0.95,txt,transform=ax.transAxes)
+
+  plt.title(f"GoF - Saturated method ")
+  plt.savefig(f"{dest}/gof_sat.pdf")
+  plt.close()
+
+
+
+
 
 def producePlots(tDir, pre_or_post):
 
@@ -115,16 +190,16 @@ def producePlots(tDir, pre_or_post):
 
     drawData = True
 
-    if key in blind_channels and pre_or_post == "postfit": 
-      print(f"... skip channel {key} (blind)")
-      continue 
+    #if key in blind_channels and pre_or_post == "postfit": 
+    #  print(f"... skip channel {key} (blind)")
+    #  continue 
  
-    elif key in blind_channels and pre_or_post == "prefit": 
-      print(f"... avoid drawing data for channel {key} (blind)")
-      drawData = False 
+    #elif key in blind_channels and pre_or_post == "prefit": 
+    #  print(f"... avoid drawing data for channel {key} (blind)")
+    #  drawData = False 
 
-    else:
-      print(f"... Producing prefit plot for channel {key}")
+    #else:
+    #  print(f"... Producing prefit plot for channel {key}")
   
     hs_prefit     = ROOT.THStack(f"Fitting Category {key[2:]}"     , f"Fitting Category {key[2:]}"     )
   
@@ -295,7 +370,7 @@ os.system(f"mkdir -p {dest}")
 #####################
 
 #read file
-f = f"{fit}/fitDiagnostics_results_asimov_{args.file}.root"
+f = f"{fit}/{args.file}/fitDiagnostics_results_asimov_{args.file}.root"
 
 #copy shapes file and save :))
 os.system(f"cp {f} {dest}")
@@ -305,7 +380,7 @@ directory = rf.Get("shapes_prefit")
 producePlots(directory, "prefit_asimov")
 
 #read file
-f = f"{fit}/fitDiagnostics_results_data_{args.file}.root"
+f = f"{fit}/{args.file}/fitDiagnostics_results_data_{args.file}.root"
 
 #copy shapes file and save :))
 os.system(f"cp {f} {dest}")
@@ -317,6 +392,7 @@ directory = rf.Get("shapes_fit_s")
 producePlots(directory, "postfit")
 
 
+produceGoF(args.file)
 
 
 
