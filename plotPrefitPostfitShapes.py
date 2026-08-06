@@ -61,6 +61,22 @@ colors = {"dsMu":           ROOT.kBlue - 2,
           "comb":           ROOT.kGray+1,
           "data":           ROOT.kBlack}
 
+colors = { "dsMu":            ROOT.TColor.GetColor("#5790fc"), #ROOT.kBlue - 2,
+           "dsTau":           ROOT.TColor.GetColor("#5790fc"), #"#ffa90e" 
+           "dsStarMu":        ROOT.TColor.GetColor("#92dadd"), #ROOT.kCyan,
+           "dsStarTau":       ROOT.TColor.GetColor("#92dadd"), #"#e76300" 
+           "hb_fd":           ROOT.TColor.GetColor("#a96b59"), #ROOT.kRed -7,
+           "hb_dc":           ROOT.TColor.GetColor("#a96b59"), #ROOT.kRed -2,
+           "hb_others":       ROOT.TColor.GetColor("#94a4a2"), #ROOT.kRed -5,
+           "hb_bs":           ROOT.TColor.GetColor("#7a21dd"), #ROOT.kRed +2,
+           "hb_bs_fd":        ROOT.TColor.GetColor("#7a21dd"), #ROOT.kRed +2,
+           "hb_bs_dc":        ROOT.TColor.GetColor("#964a8b"), #ROOT.kRed -7,
+           "hb_b0":           ROOT.TColor.GetColor("#b9ac70"), #ROOT.kMagenta,
+           "hb_bpm":          ROOT.TColor.GetColor("#832db6"), #ROOT.kOrange + 7,
+           "hb_lambdab":      ROOT.TColor.GetColor("#a96b59"), #ROOT.kViolet,
+           "comb":            ROOT.TColor.GetColor("#717581"), #ROOT.kGray+1,
+           "data":            ROOT.kBlack}
+
 legend = {"dsMu":           "B_{s}#rightarrow D_{s}#mu#nu",
           "dsTau":          "B_{s}#rightarrow D_{s}#tau#nu",
           "dsStarMu":       "B_{s}#rightarrow D*_{s}#mu#nu",
@@ -380,7 +396,7 @@ directory = rf.Get("shapes_prefit")
 producePlots(directory, "prefit_asimov")
 
 #read file
-f = f"{fit}/{args.file}/fitDiagnostics_results_data_{args.file}.root"
+f = f"{fit}/{args.file}_blind/fitDiagnostics_results_data_{args.file}_blind.root"
 
 #copy shapes file and save :))
 os.system(f"cp {f} {dest}")
